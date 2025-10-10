@@ -329,3 +329,99 @@ RunService.Stepped:Connect(function()
 		end
 	end
 end)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local mouse = LocalPlayer:GetMouse()
+local RunService = game:GetService("RunService")
+
+-- GUI Oluştur
+local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "FlyGUIv3"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 200, 0, 150)
+frame.Position = UDim2.new(0, 10, 0, 10)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Active = true
+frame.Draggable = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "FLY GUI V3"
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+
+local closeBtn = Instance.new("TextButton", frame)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -30, 0, 0)
+closeBtn.Text = "X"
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.MouseButton1Click:Connect(function()
+	gui:Destroy()
+end)
+
+-- Hız ayarı
+local speed = 50
+local speedLabel = Instance.new("TextLabel", frame)
+speedLabel.Position = UDim2.new(0, 10, 0, 40)
+speedLabel.Size = UDim2.new(0, 180, 0, 20)
+speedLabel.Text = "Speed: " .. speed
+speedLabel.TextColor3 = Color3.new(1, 1, 1)
+speedLabel.BackgroundTransparency = 1
+
+local upBtn = Instance.new("TextButton", frame)
+upBtn.Position = UDim2.new(0, 10, 0, 70)
+upBtn.Size = UDim2.new(0, 80, 0, 30)
+upBtn.Text = "UP +"
+upBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+upBtn.TextColor3 = Color3.new(1, 1, 1)
+upBtn.MouseButton1Click:Connect(function()
+	speed = speed + 10
+	speedLabel.Text = "Speed: " .. speed
+end)
+
+local downBtn = Instance.new("TextButton", frame)
+downBtn.Position = UDim2.new(0, 110, 0, 70)
+downBtn.Size = UDim2.new(0, 80, 0, 30)
+downBtn.Text = "DOWN -"
+downBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+downBtn.TextColor3 = Color3.new(1, 1, 1)
+downBtn.MouseButton1Click:Connect(function()
+	speed = math.max(10, speed - 10)
+	speedLabel.Text = "Speed: " .. speed
+end)
+
+-- Fly butonu
+local flying = false
+local flyBtn = Instance.new("TextButton", frame)
+flyBtn.Position = UDim2.new(0, 10, 0, 110)
+flyBtn.Size = UDim2.new(0, 180, 0, 30)
+flyBtn.Text = "Fly: OFF"
+flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+flyBtn.TextColor3 = Color3.new(1, 1, 1)
+
+flyBtn.MouseButton1Click:Connect(function()
+	flying = not flying
+	flyBtn.Text = "Fly: " .. (flying and "ON" or "OFF")
+end)
+
+-- Fly sistemi
+RunService.RenderStepped:Connect(function()
+	if flying then
+		local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+		if root then
+			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+				root.Velocity = Vector3.new(0, speed, 0)
+			elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+				root.Velocity = Vector3.new(0, -speed, 0)
+			else
+				root.Velocity = Vector3.new(0, 0, 0)
+			end
+		end
+	end
+end)
