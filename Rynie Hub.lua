@@ -2,57 +2,64 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local mouse = LocalPlayer:GetMouse()
 
 -- GUI Başlat
-local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local gui = Instance.new("ScreenGui", PlayerGui)
 gui.Name = "RynieHub"
+gui.ResetOnSpawn = false
 
--- Sol Menü
-local menu = Instance.new("Frame", gui)
-menu.Size = UDim2.new(0, 120, 0, 200)
-menu.Position = UDim2.new(0, 10, 0, 100)
-menu.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-menu.BorderSizePixel = 0
+-- Ana Panel (başta gizli)
+local mainPanel = Instance.new("Frame", gui)
+mainPanel.Size = UDim2.new(0, 260, 0, 400)
+mainPanel.Position = UDim2.new(0.5, -130, 0.5, -200)
+mainPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainPanel.BorderSizePixel = 0
+mainPanel.Visible = false
+mainPanel.Active = true
+mainPanel.Draggable = true
 
-local function createTabButton(name, yPos)
-	local btn = Instance.new("TextButton", menu)
-	btn.Size = UDim2.new(1, 0, 0, 40)
-	btn.Position = UDim2.new(0, 0, 0, yPos)
-	btn.Text = name
-	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.BorderSizePixel = 0
-	return btn
-end
+-- Başlık
+local title = Instance.new("TextLabel", mainPanel)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "Rynie Hub - Home"
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.BorderSizePixel = 0
 
--- Panel Oluşturucu
-local function createPanel(titleText)
-	local panel = Instance.new("Frame", gui)
-	panel.Size = UDim2.new(0, 220, 0, 400)
-	panel.Position = UDim2.new(0, 140, 0, 100)
-	panel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	panel.BorderSizePixel = 0
-	panel.Visible = false
-	panel.Active = true
-	panel.Draggable = true
+-- ❌ Kapatma Butonu
+local closeBtn = Instance.new("TextButton", mainPanel)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 0)
+closeBtn.Text = "X"
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.BorderSizePixel = 0
+closeBtn.MouseButton1Click:Connect(function()
+	mainPanel.Visible = false
+end)
 
-	local title = Instance.new("TextLabel", panel)
-	title.Size = UDim2.new(1, 0, 0, 30)
-	title.Text = titleText
-	title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	title.TextColor3 = Color3.new(1, 1, 1)
-	title.Font = Enum.Font.SourceSansBold
-	title.TextSize = 18
-	title.BorderSizePixel = 0
-
-	return panel
-end
+-- 🔘 Rynie Hub Butonu (her zaman görünür)
+local openBtn = Instance.new("TextButton", gui)
+openBtn.Size = UDim2.new(0, 120, 0, 40)
+openBtn.Position = UDim2.new(0, 10, 0, 10)
+openBtn.Text = "Rynie Hub"
+openBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+openBtn.TextColor3 = Color3.new(1, 1, 1)
+openBtn.Font = Enum.Font.SourceSansBold
+openBtn.TextSize = 20
+openBtn.BorderSizePixel = 0
+openBtn.MouseButton1Click:Connect(function()
+	mainPanel.Visible = true
+end)
 
 -- Toggle Buton Oluşturucu
 local function createToggle(name, yPos, parent, callback)
 	local btn = Instance.new("TextButton", parent)
-	btn.Size = UDim2.new(1, -20, 0, 30)
+	btn.Size = UDim2.new(0, 120, 0, 30)
 	btn.Position = UDim2.new(0, 10, 0, yPos)
 	btn.Text = name .. ": OFF"
 	btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -68,11 +75,32 @@ local function createToggle(name, yPos, parent, callback)
 	end)
 end
 
--- Home Panel
-local homePanel = createPanel("Rynie Hub - Home")
+-- Ayar Kutusu Oluşturucu
+local function createInput(name, yPos, parent, defaultValue, onChange)
+	local input = Instance.new("TextBox", parent)
+	input.Size = UDim2.new(0, 60, 0, 25)
+	input.Position = UDim2.new(0, 140, 0, yPos + 5)
+	input.Text = tostring(defaultValue)
+	input.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	input.TextColor3 = Color3.new(1, 1, 1)
+	input.BorderSizePixel = 0
+	input.PlaceholderText = name
+
+	input.FocusLost:Connect(function()
+		local val = tonumber(input.Text)
+		if val then onChange(val) end
+	end)
+end
+
+-- Özellikler
+local speedValue = 50
+local jumpValue = 100
+local flyActive = false
+local teleportMode = false
+local noclipActive = false
 
 -- ESP
-createToggle("ESP", 40, homePanel, function(state)
+createToggle("ESP", 40, mainPanel, function(state)
 	for _, p in ipairs(Players:GetPlayers()) do
 		if p ~= LocalPlayer and p.Character then
 			local h = p.Character:FindFirstChild("ESP_Highlight")
@@ -93,44 +121,35 @@ createToggle("ESP", 40, homePanel, function(state)
 end)
 
 -- Speed
-local speedValue = 50
-createToggle("Speed", 80, homePanel, function(state)
+createToggle("Speed", 80, mainPanel, function(state)
 	local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
 	if hum then hum.WalkSpeed = state and speedValue or 16 end
 end)
+createInput("Speed", 80, mainPanel, speedValue, function(val) speedValue = val end)
 
 -- Jump
-local jumpValue = 100
-createToggle("Jump", 120, homePanel, function(state)
+createToggle("Jump", 120, mainPanel, function(state)
 	local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
 	if hum then hum.JumpPower = state and jumpValue or 50 end
 end)
+createInput("Jump", 120, mainPanel, jumpValue, function(val) jumpValue = val end)
 
 -- Fly
-local flyActive = false
-local flySpeed = 3
-createToggle("Fly", 160, homePanel, function(state)
-	flyActive = state
-end)
-
+createToggle("Fly", 160, mainPanel, function(state) flyActive = state end)
 UserInputService.InputBegan:Connect(function(input, gp)
 	if gp or not flyActive then return end
 	local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 	if root then
 		if input.KeyCode == Enum.KeyCode.E then
-			root.CFrame = root.CFrame + Vector3.new(0, flySpeed, 0)
+			root.CFrame = root.CFrame + Vector3.new(0, 3, 0)
 		elseif input.KeyCode == Enum.KeyCode.Q then
-			root.CFrame = root.CFrame - Vector3.new(0, flySpeed, 0)
+			root.CFrame = root.CFrame - Vector3.new(0, 3, 0)
 		end
 	end
 end)
 
 -- Teleport
-local teleportMode = false
-createToggle("Teleport", 200, homePanel, function(state)
-	teleportMode = state
-end)
-
+createToggle("Teleport", 200, mainPanel, function(state) teleportMode = state end)
 mouse.Button1Down:Connect(function()
 	if teleportMode then
 		local hit = mouse.Hit
@@ -142,11 +161,7 @@ mouse.Button1Down:Connect(function()
 end)
 
 -- NoClip
-local noclipActive = false
-createToggle("NoClip", 240, homePanel, function(state)
-	noclipActive = state
-end)
-
+createToggle("NoClip", 240, mainPanel, function(state) noclipActive = state end)
 RunService.Stepped:Connect(function()
 	if noclipActive then
 		local char = LocalPlayer.Character
@@ -159,59 +174,3 @@ RunService.Stepped:Connect(function()
 		end
 	end
 end)
-
--- MM2 Panel
-local mm2Panel = createPanel("Rynie Hub - MM2")
-
--- Silent Aim
-createToggle("Silent Aim", 40, mm2Panel, function(state)
-	-- Silent aim tetikleyici, hedefleme sistemi ayrı eklenmeli
-end)
-
--- Gelişmiş ESP
-createToggle("MM2 ESP", 80, mm2Panel, function(state)
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character then
-			local role = "Innocent" -- örnek, gerçek rol sistemine bağlanmalı
-			local color = Color3.fromRGB(0, 255, 0)
-			if role == "Murderer" then
-				color = Color3.fromRGB(255, 0, 0)
-			elseif role == "Sheriff" then
-				color = Color3.fromRGB(0, 0, 255)
-			end
-
-			if state then
-				if not player.Character:FindFirstChild("MM2_Highlight") then
-					local hl = Instance.new("Highlight")
-					hl.Name = "MM2_Highlight"
-					hl.Adornee = player.Character
-					hl.FillColor = color
-					hl.OutlineColor = color
-					hl.FillTransparency = 0.5
-					hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-					hl.Parent = player.Character
-				end
-			else
-				local hl = player.Character:FindFirstChild("MM2_Highlight")
-				if hl then hl:Destroy() end
-			end
-		end
-	end
-end)
-
--- Sekme Butonları
-local homeBtn = createTabButton("Home", 0)
-local mm2Btn = createTabButton("MM2", 50)
-
-homeBtn.MouseButton1Click:Connect(function()
-	homePanel.Visible = true
-	mm2Panel.Visible = false
-end)
-
-mm2Btn.MouseButton1Click:Connect(function()
-	homePanel.Visible = false
-	mm2Panel.Visible = true
-end)
-
--- Varsayılan olarak Home açık
-homePanel.Visible = true
