@@ -261,3 +261,64 @@ UserInputService.InputChanged:Connect(function(input)
 		end
 	end
 end)
+
+-- === Sürükleme: Toggle Buton ===
+local isToggleDragging = false
+local toggleDragStartPos = Vector2.new(0, 0)
+local toggleDragStartOffset = UDim2.new(0, 0, 0, 0)
+
+ToggleButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		isToggleDragging = true
+		toggleDragStartPos = input.Position
+		toggleDragStartOffset = ToggleButton.Position
+	end
+end)
+
+ToggleButton.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		isToggleDragging = false
+	end
+end)
+
+-- === Sürükleme: Ana Panel ===
+local isMainFrameDragging = false
+local mainFrameDragStartPos = Vector2.new(0, 0)
+local mainFrameDragStartOffset = UDim2.new(0, 0, 0, 0)
+
+TitleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		isMainFrameDragging = true
+		mainFrameDragStartPos = input.Position
+		mainFrameDragStartOffset = MainFrame.Position
+	end
+end)
+
+TitleBar.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		isMainFrameDragging = false
+	end
+end)
+
+-- === Sürükleme Güncelleme ===
+UserInputService.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		if isToggleDragging then
+			local delta = input.Position - toggleDragStartPos
+			ToggleButton.Position = UDim2.new(
+				toggleDragStartOffset.X.Scale,
+				toggleDragStartOffset.X.Offset + delta.X,
+				toggleDragStartOffset.Y.Scale,
+				toggleDragStartOffset.Y.Offset + delta.Y
+			)
+		elseif isMainFrameDragging then
+			local delta = input.Position - mainFrameDragStartPos
+			MainFrame.Position = UDim2.new(
+				mainFrameDragStartOffset.X.Scale,
+				mainFrameDragStartOffset.X.Offset + delta.X,
+				mainFrameDragStartOffset.Y.Scale,
+				mainFrameDragStartOffset.Y.Offset + delta.Y
+			)
+		end
+	end
+end)
