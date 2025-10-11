@@ -53,7 +53,6 @@ SettingsPanel.BorderSizePixel = 0
 local UIListLayout = Instance.new("UIListLayout", SettingsPanel)
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIListLayout.Padding = UDim.new(0, 5)
-
 local function createButton(name, action)
 	local button = Instance.new("TextButton", SettingsPanel)
 	button.Size = UDim2.new(1, -10, 0, 30)
@@ -75,38 +74,34 @@ local function createButton(name, action)
 end
 
 createButton("Fly GUI'yi Aç", function()
-	loadstring([[
-		local plr = game.Players.LocalPlayer
-		local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
-		gui.Name = "FlyGUIV3"
-		local fly = Instance.new("BodyVelocity")
-		local gyro = Instance.new("BodyGyro")
-		local char = plr.Character or plr.CharacterAdded:Wait()
-		local hrp = char:WaitForChild("HumanoidRootPart")
-		fly.Velocity = Vector3.new(0,0,0)
-		fly.MaxForce = Vector3.new(1e5,1e5,1e5)
-		fly.Parent = hrp
-		gyro.CFrame = hrp.CFrame
-		gyro.MaxTorque = Vector3.new(1e5,1e5,1e5)
-		gyro.P = 1e4
-		gyro.Parent = hrp
-		game:GetService("RunService").RenderStepped:Connect(function()
-			local cam = workspace.CurrentCamera
-			local dir = Vector3.new()
-			if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.CFrame.LookVector end
-			if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.CFrame.LookVector end
-			if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.CFrame.RightVector end
-			if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.CFrame.RightVector end
-			fly.Velocity = dir.Unit * 50
-			gyro.CFrame = cam.CFrame
-		end)
-	]])()
+	local plr = Players.LocalPlayer
+	local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
+	gui.Name = "FlyGUIV3"
+	local fly = Instance.new("BodyVelocity")
+	local gyro = Instance.new("BodyGyro")
+	local char = plr.Character or plr.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	fly.Velocity = Vector3.new(0,0,0)
+	fly.MaxForce = Vector3.new(1e5,1e5,1e5)
+	fly.Parent = hrp
+	gyro.CFrame = hrp.CFrame
+	gyro.MaxTorque = Vector3.new(1e5,1e5,1e5)
+	gyro.P = 1e4
+	gyro.Parent = hrp
+	RunService.RenderStepped:Connect(function()
+		local cam = workspace.CurrentCamera
+		local dir = Vector3.new()
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.CFrame.LookVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.CFrame.LookVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.CFrame.RightVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.CFrame.RightVector end
+		fly.Velocity = dir.Unit * 50
+		gyro.CFrame = cam.CFrame
+	end)
 end)
 
 createButton("AutoKill'i Başlat", function()
-	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-	local hum = char:WaitForChild("Humanoid")
-	for _, player in ipairs(game.Players:GetPlayers()) do
+	for _, player in ipairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") then
 			player.Character.Humanoid.Health = 0
 		end
@@ -122,7 +117,7 @@ createButton("CoinFarm'i Başlat", function()
 end)
 
 createButton("MM2 ESP'yi Aç", function()
-	for _, player in ipairs(game.Players:GetPlayers()) do
+	for _, player in ipairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 			local billboard = Instance.new("BillboardGui", player.Character.HumanoidRootPart)
 			billboard.Size = UDim2.new(0, 100, 0, 40)
@@ -137,7 +132,6 @@ createButton("MM2 ESP'yi Aç", function()
 		end
 	end
 end)
-
 ToggleButton.MouseButton1Click:Connect(function()
 	MainFrame.Visible = not MainFrame.Visible
 end)
@@ -146,7 +140,9 @@ CloseButton.MouseButton1Click:Connect(function()
 	MainFrame.Visible = false
 end)
 
-SettingsPanel.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
+UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	SettingsPanel.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
+end)
 
 local isToggleDragging = false
 local toggleDragStartPos = Vector2.new(0, 0)
@@ -185,6 +181,7 @@ TitleBar.InputEnded:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
+	if input.UserInputType ==UserInputService.InputChanged:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseMovement then
 		if isToggleDragging then
 			local delta = input.Position - toggleDragStartPos
@@ -193,7 +190,31 @@ UserInputService.InputChanged:Connect(function(input)
 				toggleDragStartOffset.X.Offset + delta.X,
 				toggleDragStartOffset.Y.Scale,
 				toggleDragStartOffset.Y.Offset + delta.Y
-			)			MainFrame.Position = UDim2.new(
+			)
+		elseif isMainFrameDragging then
+			local delta = input.Position - mainFrameDragStartPos
+			MainFrame.Position = UDim2.new(
+				mainFrameDragStartOffset.X.Scale,
+				mainFrameDragStartOffset.X.Offset + delta.X,
+				mainFrameDragStartOffset.Y.Scale,
+				mainFrameDragStartOffset.Y.Offset + delta.Y
+			)
+		end
+	end
+end)
+			UserInputService.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		if isToggleDragging then
+			local delta = input.Position - toggleDragStartPos
+			ToggleButton.Position = UDim2.new(
+				toggleDragStartOffset.X.Scale,
+				toggleDragStartOffset.X.Offset + delta.X,
+				toggleDragStartOffset.Y.Scale,
+				toggleDragStartOffset.Y.Offset + delta.Y
+			)
+		elseif isMainFrameDragging then
+			local delta = input.Position - mainFrameDragStartPos
+			MainFrame.Position = UDim2.new(
 				mainFrameDragStartOffset.X.Scale,
 				mainFrameDragStartOffset.X.Offset + delta.X,
 				mainFrameDragStartOffset.Y.Scale,
