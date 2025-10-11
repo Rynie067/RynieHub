@@ -1,11 +1,15 @@
--- Rynie Hub Tam Kod
+-- RYNIE HUB - TAM KOD (V1.2)
+-- Kalıcı ESP, Fly GUI ve Menü Kapanma Düzeltmeleri
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera -- Fly lojiği için eklendi
 local mouse = LocalPlayer:GetMouse()
 
+-- === ANA GUI VE ÇERÇEVELER ===
 local gui = Instance.new("ScreenGui", PlayerGui)
 gui.Name = "RynieHub"
 gui.ResetOnSpawn = false
@@ -26,6 +30,8 @@ menu.Position = UDim2.new(0, 10, 0, 60)
 menu.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 menu.BorderSizePixel = 0
 menu.Visible = false
+
+-- === YARDIMCI FONKSİYONLAR ===
 
 local function createTabButton(name, yPos)
 	local btn = Instance.new("TextButton", menu)
@@ -90,14 +96,21 @@ local function createToggle(name, yPos, parent, callback)
 end
 
 local function createInput(name, yPos, parent, defaultValue, onChange)
+	local label = Instance.new("TextLabel", parent)
+	label.Size = UDim2.new(0, 60, 0, 25)
+	label.Position = UDim2.new(0, 140, 0, yPos + 5)
+	label.Text = name .. ":"
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.BackgroundTransparency = 1
+	label.TextXAlignment = Enum.TextXAlignment.Right
+	
 	local input = Instance.new("TextBox", parent)
-	input.Size = UDim2.new(0, 60, 0, 25)
-	input.Position = UDim2.new(0, 140, 0, yPos + 5)
+	input.Size = UDim2.new(0, 50, 0, 25)
+	input.Position = UDim2.new(0, 205, 0, yPos + 5)
 	input.Text = tostring(defaultValue)
 	input.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 	input.TextColor3 = Color3.new(1, 1, 1)
 	input.BorderSizePixel = 0
-	input.PlaceholderText = name
 
 	input.FocusLost:Connect(function()
 		local val = tonumber(input.Text)
@@ -105,29 +118,53 @@ local function createInput(name, yPos, parent, defaultValue, onChange)
 	end)
 end
 
+-- === PANEL VE BUTON TANIMLAMALARI ===
 local homePanel = createPanel("Rynie Hub - Home")
 local mm2Panel = createPanel("Rynie Hub - MM2")
 
 local homeBtn = createTabButton("Home", 0)
 local mm2Btn = createTabButton("MM2", 50)
 
+-- === MENÜ KONTROL LOJİĞİ (Çift Tıklama Kapatma) ===
 homeBtn.MouseButton1Click:Connect(function()
-	homePanel.Visible = true
-	mm2Panel.Visible = false
+    if homePanel.Visible then
+        homePanel.Visible = false
+        mm2Panel.Visible = false
+        menu.Visible = false
+    else
+        homePanel.Visible = true
+        mm2Panel.Visible = false
+        menu.Visible = true
+    end
 end)
+
 mm2Btn.MouseButton1Click:Connect(function()
-	homePanel.Visible = false
-	mm2Panel.Visible = true
+    if mm2Panel.Visible then
+        mm2Panel.Visible = false
+        homePanel.Visible = false
+        menu.Visible = false
+    else
+        mm2Panel.Visible = true
+        homePanel.Visible = false
+        menu.Visible = true
+    end
 end)
 
 openBtn.MouseButton1Click:Connect(function()
-	menu.Visible = true
-	homePanel.Visible = true
+	if menu.Visible then
+		menu.Visible = false
+		homePanel.Visible = false
+		mm2Panel.Visible = false
+	else
+		menu.Visible = true
+		homePanel.Visible = true
+	end
 end)
--- Özellik değişkenleri
+
+-- === ÖZELLİK DEĞİŞKENLERİ ===
 local speedValue = 50
 local jumpValue = 100
-local flyActive = false
+local flyActive = false -- Bu, ana menüdeki fly toggle'ı temsil eder.
 local teleportMode = false
 local noclipActive = false
 local espEnabled = false
@@ -135,7 +172,11 @@ local mm2EspEnabled = false
 local coinFarmEnabled = false
 local autoKillEnabled = false
 
--- Home sekmesi
+-- Yeni Fly GUI için değişkenler
+local currentFlySpeed = 20
+local flyEnabled = false -- Bu, yeni Fly GUI'nin kendi toggle'ını temsil eder.
+
+-- === HOME SEKME ÖZELLİKLERİ ===
 createToggle("ESP", 40, homePanel, function(state)
 	espEnabled = state
 end)
@@ -144,7 +185,7 @@ createToggle("Speed", 80, homePanel, function(state)
 	local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
 	if hum then hum.WalkSpeed = state and speedValue or 16 end
 end)
-createInput("Speed", 80, homePanel, speedValue, function(val)
+createInput("Hız", 80, homePanel, speedValue, function(val)
 	speedValue = val
 end)
 
@@ -152,12 +193,13 @@ createToggle("Jump", 120, homePanel, function(state)
 	local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
 	if hum then hum.JumpPower = state and jumpValue or 50 end
 end)
-createInput("Jump", 120, homePanel, jumpValue, function(val)
+createInput("Güç", 120, homePanel, jumpValue, function(val)
 	jumpValue = val
 end)
 
 createToggle("Fly", 160, homePanel, function(state)
-	flyActive = state
+	flyActive = state -- Bu toggle sadece Fly GUI'yi açıp kapatmak için kullanılabilir veya ana fly'ı kontrol edebilir.
+    flyEnabled = state
 end)
 
 createToggle("Teleport", 200, homePanel, function(state)
@@ -168,7 +210,7 @@ createToggle("NoClip", 240, homePanel, function(state)
 	noclipActive = state
 end)
 
--- MM2 sekmesi
+-- === MM2 SEKME ÖZELLİKLERİ ===
 createToggle("MM2 ESP", 40, mm2Panel, function(state)
 	mm2EspEnabled = state
 end)
@@ -180,78 +222,81 @@ end)
 createToggle("AutoKill", 120, mm2Panel, function(state)
 	autoKillEnabled = state
 end)
--- ESP (Home sekmesi)
+
+-- === KALICI ESP LOJİĞİ (Highlight Metodu) ===
+
+local function updateEsp(player, highlightName, color)
+    local char = player.Character
+    if char then
+        local highlight = char:FindFirstChild(highlightName)
+        
+        if color then
+            -- ESP ACIK: Highlight yoksa oluştur, varsa rengini güncelle
+            if not highlight then
+                highlight = Instance.new("Highlight")
+                highlight.Name = highlightName
+                highlight.Adornee = char
+                highlight.FillColor = color
+                highlight.OutlineColor = color
+                highlight.FillTransparency = 0.5
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- Duvar arkası görünürlük
+                highlight.Parent = char
+            else
+                highlight.FillColor = color
+                highlight.OutlineColor = color
+            end
+        else
+            -- ESP KAPALI: Highlight varsa yok et
+            if highlight then
+                highlight:Destroy()
+            end
+        end
+    end
+end
+
+-- Home ESP (Yeşil)
 RunService.RenderStepped:Connect(function()
-	if espEnabled then
-		for _, p in ipairs(Players:GetPlayers()) do
-			if p ~= LocalPlayer and p.Character then
-				if not p.Character:FindFirstChild("ESP_Highlight") then
-					local hl = Instance.new("Highlight")
-					hl.Name = "ESP_Highlight"
-					hl.Adornee = p.Character
-					hl.FillColor = Color3.fromRGB(0, 255, 255)
-					hl.OutlineColor = Color3.fromRGB(0, 255, 255)
-					hl.FillTransparency = 0.5
-					hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-					hl.Parent = p.Character
-				end
-			end
-		end
-	else
-		for _, p in ipairs(Players:GetPlayers()) do
-			if p.Character then
-				local h = p.Character:FindFirstChild("ESP_Highlight")
-				if h then h:Destroy() end
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character then
+			if espEnabled then
+				updateEsp(p, "ESP_Highlight", Color3.fromRGB(0, 255, 0))
+			else
+				updateEsp(p, "ESP_Highlight", nil)
 			end
 		end
 	end
 end)
 
--- MM2 ESP (renkli)
+-- MM2 ESP (Renkli)
 RunService.RenderStepped:Connect(function()
-	if mm2EspEnabled then
-		for _, p in ipairs(Players:GetPlayers()) do
-			if p ~= LocalPlayer and p.Character then
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character then
+			if mm2EspEnabled then
 				local role = nil
-				if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
+				if p.Backpack:FindFirstChild("Knife") or (p.Character and p.Character:FindFirstChild("Knife")) then
 					role = "Murderer"
-				elseif p.Backpack:FindFirstChild("Gun") or p.Character:FindFirstChild("Gun") then
+				elseif p.Backpack:FindFirstChild("Gun") or (p.Character and p.Character:FindFirstChild("Gun")) then
 					role = "Sheriff"
 				else
 					role = "Innocent"
 				end
 
-				local color = Color3.fromRGB(0, 255, 0) -- Innocent (yeşil)
+				local color = Color3.fromRGB(0, 255, 0)
 				if role == "Murderer" then
-					color = Color3.fromRGB(255, 0, 0) -- Kırmızı
+					color = Color3.fromRGB(255, 0, 0)
 				elseif role == "Sheriff" then
-					color = Color3.fromRGB(0, 0, 255) -- Mavi
+					color = Color3.fromRGB(0, 0, 255)
 				end
-
-				if not p.Character:FindFirstChild("MM2_Highlight") then
-					local hl = Instance.new("Highlight")
-					hl.Name = "MM2_Highlight"
-					hl.Adornee = p.Character
-					hl.FillColor = color
-					hl.OutlineColor = color
-					hl.FillTransparency = 0.5
-					hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-					hl.Parent = p.Character
-				else
-					p.Character.MM2_Highlight.FillColor = color
-					p.Character.MM2_Highlight.OutlineColor = color
-				end
-			end
-		end
-	else
-		for _, p in ipairs(Players:GetPlayers()) do
-			if p.Character then
-				local h = p.Character:FindFirstChild("MM2_Highlight")
-				if h then h:Destroy() end
+				
+				updateEsp(p, "MM2_Highlight", color)
+			else
+				updateEsp(p, "MM2_Highlight", nil)
 			end
 		end
 	end
 end)
+
+-- === OYUN HİLE LOJİĞİ ===
 
 -- CoinFarm
 RunService.RenderStepped:Connect(function()
@@ -289,21 +334,6 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 end)
--- Fly sistemi
-RunService.RenderStepped:Connect(function()
-	if flyActive then
-		local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-		if root then
-			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-				root.Velocity = Vector3.new(0, 50, 0)
-			elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-				root.Velocity = Vector3.new(0, -50, 0)
-			else
-				root.Velocity = Vector3.new(0, 0, 0)
-			end
-		end
-	end
-end)
 
 -- Teleport sistemi
 mouse.Button1Down:Connect(function()
@@ -327,101 +357,155 @@ RunService.Stepped:Connect(function()
 				end
 			end
 		end
-	end
-end)
-
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local mouse = LocalPlayer:GetMouse()
-local RunService = game:GetService("RunService")
-
--- GUI Oluştur
-local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-gui.Name = "FlyGUIv3"
-gui.ResetOnSpawn = false
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 200, 0, 150)
-frame.Position = UDim2.new(0, 10, 0, 10)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.Active = true
-frame.Draggable = true
-
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "FLY GUI V3"
-title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 18
-
-local closeBtn = Instance.new("TextButton", frame)
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -30, 0, 0)
-closeBtn.Text = "X"
-closeBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
-closeBtn.MouseButton1Click:Connect(function()
-	gui:Destroy()
-end)
-
--- Hız ayarı
-local speed = 50
-local speedLabel = Instance.new("TextLabel", frame)
-speedLabel.Position = UDim2.new(0, 10, 0, 40)
-speedLabel.Size = UDim2.new(0, 180, 0, 20)
-speedLabel.Text = "Speed: " .. speed
-speedLabel.TextColor3 = Color3.new(1, 1, 1)
-speedLabel.BackgroundTransparency = 1
-
-local upBtn = Instance.new("TextButton", frame)
-upBtn.Position = UDim2.new(0, 10, 0, 70)
-upBtn.Size = UDim2.new(0, 80, 0, 30)
-upBtn.Text = "UP +"
-upBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-upBtn.TextColor3 = Color3.new(1, 1, 1)
-upBtn.MouseButton1Click:Connect(function()
-	speed = speed + 10
-	speedLabel.Text = "Speed: " .. speed
-end)
-
-local downBtn = Instance.new("TextButton", frame)
-downBtn.Position = UDim2.new(0, 110, 0, 70)
-downBtn.Size = UDim2.new(0, 80, 0, 30)
-downBtn.Text = "DOWN -"
-downBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-downBtn.TextColor3 = Color3.new(1, 1, 1)
-downBtn.MouseButton1Click:Connect(function()
-	speed = math.max(10, speed - 10)
-	speedLabel.Text = "Speed: " .. speed
-end)
-
--- Fly butonu
-local flying = false
-local flyBtn = Instance.new("TextButton", frame)
-flyBtn.Position = UDim2.new(0, 10, 0, 110)
-flyBtn.Size = UDim2.new(0, 180, 0, 30)
-flyBtn.Text = "Fly: OFF"
-flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-flyBtn.TextColor3 = Color3.new(1, 1, 1)
-
-flyBtn.MouseButton1Click:Connect(function()
-	flying = not flying
-	flyBtn.Text = "Fly: " .. (flying and "ON" or "OFF")
-end)
-
--- Fly sistemi
-RunService.RenderStepped:Connect(function()
-	if flying then
-		local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-		if root then
-			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-				root.Velocity = Vector3.new(0, speed, 0)
-			elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-				root.Velocity = Vector3.new(0, -speed, 0)
-			else
-				root.Velocity = Vector3.new(0, 0, 0)
+	else -- NoClip kapalıysa çarpışmayı geri aç
+		local char = LocalPlayer.Character
+		if char then
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = true
+				end
 			end
 		end
 	end
+end)
+
+-- === YENİ GÖRÜNÜMLÜ FLY GUI LOJİĞİ ===
+local NewFlyFrame = Instance.new("Frame")
+NewFlyFrame.Name = "NewFlyGUI"
+NewFlyFrame.Size = UDim2.new(0, 180, 0, 120)
+NewFlyFrame.Position = UDim2.new(0.5, -90, 0.2, 0)
+NewFlyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+NewFlyFrame.BorderSizePixel = 0
+NewFlyFrame.Visible = true -- Başlangıçta görünür
+NewFlyFrame.Active = true
+NewFlyFrame.Draggable = true
+NewFlyFrame.Parent = gui
+
+local TitleBar = Instance.new("Frame", NewFlyFrame)
+TitleBar.Size = UDim2.new(1, 0, 0, 25)
+TitleBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+
+local TitleLabel = Instance.new("TextLabel", TitleBar)
+TitleLabel.Size = UDim2.new(1, -25, 1, 0)
+TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+TitleLabel.Text = "FLIGHT CONTROL"
+TitleLabel.TextColor3 = Color3.new(1, 1, 1)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.TextSize = 15
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local FlyCloseBtn = Instance.new("TextButton", TitleBar)
+FlyCloseBtn.Size = UDim2.new(0, 25, 1, 0)
+FlyCloseBtn.Position = UDim2.new(1, -25, 0, 0)
+FlyCloseBtn.Text = "X"
+FlyCloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+FlyCloseBtn.TextColor3 = Color3.new(1, 1, 1)
+FlyCloseBtn.Font = Enum.Font.SourceSansBold
+FlyCloseBtn.TextSize = 18
+
+local GridFrame = Instance.new("Frame", NewFlyFrame)
+GridFrame.Size = UDim2.new(1, -20, 0, 65)
+GridFrame.Position = UDim2.new(0, 10, 0, 35)
+GridFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+GridFrame.BackgroundTransparency = 0 -- Görseldeki gibi arka plan rengi
+
+local UP_Btn = Instance.new("TextButton", GridFrame)
+UP_Btn.Size = UDim2.new(0.4, 0, 0.45, 0)
+UP_Btn.Position = UDim2.new(0.05, 0, 0.05, 0)
+UP_Btn.Text = "UP"
+UP_Btn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+UP_Btn.TextColor3 = Color3.new(1, 1, 1)
+UP_Btn.Font = Enum.Font.SourceSansBold
+
+local DOWN_Btn = Instance.new("TextButton", GridFrame)
+DOWN_Btn.Size = UDim2.new(0.4, 0, 0.45, 0)
+DOWN_Btn.Position = UDim2.new(0.05, 0, 0.5, 0)
+DOWN_Btn.Text = "DOWN"
+DOWN_Btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+DOWN_Btn.TextColor3 = Color3.new(1, 1, 1)
+DOWN_Btn.Font = Enum.Font.SourceSansBold
+
+local PLUS_Btn = Instance.new("TextButton", GridFrame)
+PLUS_Btn.Size = UDim2.new(0.4, 0, 0.45, 0)
+PLUS_Btn.Position = UDim2.new(0.55, 0, 0.05, 0)
+PLUS_Btn.Text = "+"
+PLUS_Btn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+PLUS_Btn.TextColor3 = Color3.new(1, 1, 1)
+PLUS_Btn.Font = Enum.Font.SourceSansBold
+
+local MINUS_Btn = Instance.new("TextButton", GridFrame)
+MINUS_Btn.Size = UDim2.new(0.4, 0, 0.45, 0)
+MINUS_Btn.Position = UDim2.new(0.55, 0, 0.5, 0)
+MINUS_Btn.Text = "-"
+MINUS_Btn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+MINUS_Btn.TextColor3 = Color3.new(1, 1, 1)
+MINUS_Btn.Font = Enum.Font.SourceSansBold
+
+local FlyToggleBtn = Instance.new("TextButton", NewFlyFrame)
+FlyToggleBtn.Size = UDim2.new(1, 0, 0, 20)
+FlyToggleBtn.Position = UDim2.new(0, 0, 0, 100)
+FlyToggleBtn.Text = "FLY: OFF"
+FlyToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+FlyToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+FlyToggleBtn.Font = Enum.Font.SourceSansBold
+
+-- Fly Hız Yönetimi
+local function updateFlyText()
+    FlyToggleBtn.Text = "FLY: " .. (flyEnabled and "ON" or "OFF") .. " (" .. currentFlySpeed .. " speed)"
+    FlyToggleBtn.BackgroundColor3 = flyEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+end
+updateFlyText()
+
+FlyCloseBtn.MouseButton1Click:Connect(function()
+    NewFlyFrame.Visible = false
+end)
+
+FlyToggleBtn.MouseButton1Click:Connect(function()
+    flyEnabled = not flyEnabled
+    flyActive = flyEnabled
+    updateFlyText()
+end)
+
+PLUS_Btn.MouseButton1Click:Connect(function()
+    currentFlySpeed = math.min(150, currentFlySpeed + 10)
+    updateFlyText()
+end)
+
+MINUS_Btn.MouseButton1Click:Connect(function()
+    currentFlySpeed = math.max(10, currentFlySpeed - 10)
+    updateFlyText()
+end)
+
+-- Fly Lojiği
+RunService.RenderStepped:Connect(function()
+	if flyEnabled then
+		local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+		if root then
+            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then humanoid.PlatformStand = true end
+
+            local moveVector = Vector3.new(0, 0, 0)
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + Camera.CFrame.lookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - Camera.CFrame.lookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - Camera.CFrame.rightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + Camera.CFrame.rightVector end
+            
+            local speedMultiplier = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and 2 or 1
+            
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) or UP_Btn:IsPressed() then moveVector = moveVector + Vector3.new(0, 1, 0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or DOWN_Btn:IsPressed() then moveVector = moveVector - Vector3.new(0, 1, 0) end
+            
+			root.CFrame = root.CFrame + (moveVector.unit * currentFlySpeed * 0.05 * speedMultiplier)
+            
+		else
+            -- Karakter yoksa uçuşu kapat
+            flyEnabled = false
+            flyActive = false
+            updateFlyText()
+        end
+	else
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid.PlatformStand = false end
+    end
 end)
