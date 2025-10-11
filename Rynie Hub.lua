@@ -87,16 +87,22 @@ local function createToggle(name, onFunction, offFunction)
 	updateText()
 end
 
--- === Fly ===
-local function flyOn()
-	pcall(function()
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
-	end)
-end
-
 local function flyOff()
+	Features.Fly.State = false
 	local gui = LocalPlayer:FindFirstChild("PlayerGui"):FindFirstChild("FlyGUIV3")
-	if gui then gui:Destroy() end
+	if gui then
+		gui:Destroy()
+	end
+
+	-- Ekstra: Fly scriptin karaktere eklediği bağlantıları da temizle
+	local char = LocalPlayer.Character
+	if char then
+		for _, v in ipairs(char:GetDescendants()) do
+			if v:IsA("BodyVelocity") or v:IsA("BodyGyro") then
+				v:Destroy()
+			end
+		end
+	end
 end
 
 -- === AutoKill ===
@@ -322,3 +328,4 @@ UserInputService.InputChanged:Connect(function(input)
 		end
 	end
 end)
+
